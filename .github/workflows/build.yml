@@ -876,6 +876,24 @@ jobs:
           grep -q '^CONFIG_REKERNEL=y$' "$DEFCONFIG" || echo "CONFIG_REKERNEL=y" >> "$DEFCONFIG"
           grep -q '^CONFIG_REKERNEL_NETWORK=y$' "$DEFCONFIG" || echo "CONFIG_REKERNEL_NETWORK=y" >> "$DEFCONFIG"
 
+      - name: 应用 Droidspaces kABI 补丁
+        working-directory: ${{ env.KERNEL_ROOT }}
+        run: |
+          # 针对 5.10 GKI 内核的专用补丁地址
+          PATCH_URL="https://raw.githubusercontent.com/ravindu644/Droidspaces-OSS/main/Patches/gki-android12-5.10-kabi.patch"
+          
+          echo "正在下载 kABI 补丁..."
+          curl -sLO "$PATCH_URL"
+          
+          # 尝试应用补丁
+          if [ -f "gki-android12-5.10-kabi.patch" ]; then
+            echo "正在应用补丁..."
+            patch -p1 < gki-android12-5.10-kabi.patch || echo "部分补丁应用失败，请检查冲突"
+          else
+            echo "补丁下载失败！"
+            exit 1
+          fi
+          
       - name: 配置内核选项
         working-directory: ${{ env.KERNEL_ROOT }}
         run: |
@@ -885,12 +903,12 @@ jobs:
           CONFIG_TMPFS_POSIX_ACL=y
           # Droidspaces & Container Support
           CONFIG_NAMESPACES=y
-          CONFIG_PID_NS=y
+          CONFIG_SYSVIPC=y
+          CONFIG_SYSVIPC_SYSCTL=y
           CONFIG_IPC_NS=y
+          CONFIG_PID_NS=y
           CONFIG_UTS_NS=y
-          CONFIG_USER_NS=y
-          CONFIG_DEVTMPFS=y
-          CONFIG_DEVTMPFS_MOUNT=y
+          CONFIG_NAMESPACES=y
           EOF
 
           if [ "${{ inputs.ksu_variant }}" == "SukiSU" ] || [ "${{ inputs.ksu_variant }}" == "ReSukiSU" ] || [ "${{ inputs.ksu_variant }}" == "Next" ]; then
